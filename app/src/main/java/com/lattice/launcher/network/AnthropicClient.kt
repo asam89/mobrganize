@@ -23,7 +23,12 @@ data class AnthropicRequest(
     val system: String? = null
 )
 
-class AnthropicClient(private val apiKey: String) {
+sealed class ApiMode {
+    data class DirectKey(val apiKey: String) : ApiMode()
+    data class Proxy(val proxyUrl: String) : ApiMode()
+}
+
+class AnthropicClient(private val mode: ApiMode) {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -42,16 +47,25 @@ class AnthropicClient(private val apiKey: String) {
         )
         val jsonBody = json.encodeToString(body)
 
-        val request = Request.Builder()
-            .url("https://api.anthropic.com/v1/messages")
-            .addHeader("x-api-key", apiKey)
-            .addHeader("anthropic-version", "2023-06-01")
+        val requestBuilder = Request.Builder()
             .addHeader("content-type", "application/json")
             .post(jsonBody.toRequestBody("application/json".toMediaType()))
-            .build()
+
+        when (mode) {
+            is ApiMode.DirectKey -> {
+                requestBuilder
+                    .url("https://api.anthropic.com/v1/messages")
+                    .addHeader("x-api-key", mode.apiKey)
+                    .addHeader("anthropic-version", "2023-06-01")
+            }
+            is ApiMode.Proxy -> {
+                val baseUrl = mode.proxyUrl.trimEnd('/')
+                requestBuilder.url("$baseUrl/v1/messages")
+            }
+        }
 
         return try {
-            client.newCall(request).execute().use { response ->
+            client.newCall(requestBuilder.build()).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val responseBody = response.body?.string() ?: return null
                 val root = json.parseToJsonElement(responseBody).jsonObject
