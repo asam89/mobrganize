@@ -9,6 +9,7 @@ import com.lattice.launcher.data.HomeLayout
 import com.lattice.launcher.data.LayoutPlanner
 import com.lattice.launcher.data.SettingsStore
 import com.lattice.launcher.network.AnthropicClient
+import com.lattice.launcher.network.ApiMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _apiKey = MutableStateFlow("")
     val apiKey: StateFlow<String> = _apiKey
 
+    private val _proxyUrl = MutableStateFlow("")
+    val proxyUrl: StateFlow<String> = _proxyUrl
+
+    private val _useProxy = MutableStateFlow(false)
+    val useProxy: StateFlow<Boolean> = _useProxy
+
     private val _isOrganizing = MutableStateFlow(false)
     val isOrganizing: StateFlow<Boolean> = _isOrganizing
 
@@ -38,6 +45,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             settingsStore.apiKey.collect { _apiKey.value = it }
+        }
+        viewModelScope.launch {
+            settingsStore.proxyUrl.collect { _proxyUrl.value = it }
+        }
+        viewModelScope.launch {
+            settingsStore.useProxy.collect { _useProxy.value = it }
         }
         loadApps()
         loadSavedLayout()
@@ -73,19 +86,36 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveApiKey(key: String) {
+    fun saveSettings(apiKey: String, proxyUrl: String, useProxy: Boolean) {
         viewModelScope.launch {
-            settingsStore.setApiKey(key)
-            _apiKey.value = key
+            settingsStore.setApiKey(apiKey)
+            settingsStore.setProxyUrl(proxyUrl)
+            settingsStore.setUseProxy(useProxy)
+            _apiKey.value = apiKey
+            _proxyUrl.value = proxyUrl
+            _useProxy.value = useProxy
         }
     }
 
     fun organizeWithPrompt(prompt: String) {
+        val useProxyMode = _useProxy.value
         val key = _apiKey.value
-        if (key.isBlank()) {
-            _error.value = "Set your Anthropic API key in Settings first."
-            return
+        val proxy = _proxyUrl.value
+
+        val apiMode = if (useProxyMode) {
+            if (proxy.isBlank()) {
+                _error.value = "Set your proxy URL in Settings first."
+                return
+            }
+            ApiMode.Proxy(proxy)
+        } else {
+            if (key.isBlank()) {
+                _error.value = "Set your Anthropic API key in Settings first."
+                return
+            }
+            ApiMode.DirectKey(key)
         }
+
         _isOrganizing.value = true
         _error.value = null
 
@@ -101,7 +131,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     append("\"hiddenPackages\":[...]}")
                 }
 
-                val client = AnthropicClient(key)
+                val client = AnthropicClient(apiMode)
                 val response = client.sendMessage(
                     userPrompt = prompt,
                     systemPrompt = systemPrompt

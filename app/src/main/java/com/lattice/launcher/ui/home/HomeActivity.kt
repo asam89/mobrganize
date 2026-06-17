@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lattice.launcher.ui.settings.SettingsScreen
+import com.lattice.launcher.ui.settings.SettingsState
 import com.lattice.launcher.ui.theme.LatticeTheme
 
 class HomeActivity : ComponentActivity() {
@@ -26,13 +27,19 @@ class HomeActivity : ComponentActivity() {
                 val isOrganizing by vm.isOrganizing.collectAsState()
                 val error by vm.error.collectAsState()
                 val apiKey by vm.apiKey.collectAsState()
+                val proxyUrl by vm.proxyUrl.collectAsState()
+                val useProxy by vm.useProxy.collectAsState()
                 var showSettings by remember { mutableStateOf(false) }
 
                 if (showSettings) {
                     SettingsScreen(
-                        currentApiKey = apiKey,
-                        onSave = { key ->
-                            vm.saveApiKey(key)
+                        state = SettingsState(
+                            apiKey = apiKey,
+                            proxyUrl = proxyUrl,
+                            useProxy = useProxy
+                        ),
+                        onSave = { key, proxy, proxy_enabled ->
+                            vm.saveSettings(key, proxy, proxy_enabled)
                             showSettings = false
                         },
                         onBack = { showSettings = false }
