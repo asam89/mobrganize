@@ -19,14 +19,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Generate Gradle Wrapper
-        run: |
-          GRADLE_VERSION=8.11.1
-          curl -sL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o gradle.zip
-          unzip -qo gradle.zip
-          ./gradle-${GRADLE_VERSION}/bin/gradle wrapper --gradle-version ${GRADLE_VERSION}
-          rm -rf gradle.zip gradle-${GRADLE_VERSION}
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
