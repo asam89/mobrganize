@@ -23,12 +23,14 @@ class HomeActivity : ComponentActivity() {
         setContent {
             LatticeTheme {
                 val vm: HomeViewModel = viewModel()
+                val apps by vm.apps.collectAsState()
                 val layout by vm.layout.collectAsState()
                 val isOrganizing by vm.isOrganizing.collectAsState()
                 val error by vm.error.collectAsState()
                 val apiKey by vm.apiKey.collectAsState()
                 val proxyUrl by vm.proxyUrl.collectAsState()
                 val useProxy by vm.useProxy.collectAsState()
+                val aiAvailable = if (useProxy) proxyUrl.isNotBlank() else apiKey.isNotBlank()
                 var showSettings by remember { mutableStateOf(false) }
 
                 if (showSettings) {
@@ -38,18 +40,24 @@ class HomeActivity : ComponentActivity() {
                             proxyUrl = proxyUrl,
                             useProxy = useProxy
                         ),
-                        onSave = { key, proxy, proxy_enabled ->
-                            vm.saveSettings(key, proxy, proxy_enabled)
+                        onSave = { key, proxy, proxyEnabled ->
+                            vm.saveSettings(key, proxy, proxyEnabled)
                             showSettings = false
                         },
                         onBack = { showSettings = false }
                     )
                 } else {
                     HomeScreen(
+                        apps = apps,
                         layout = layout,
                         isOrganizing = isOrganizing,
+                        aiAvailable = aiAvailable,
                         error = error,
-                        onOrganize = { prompt -> vm.organizeWithPrompt(prompt) },
+                        onOrganizeOffline = { vm.organizeOffline() },
+                        onOrganizeWithAi = { prompt -> vm.organizeWithPrompt(prompt) },
+                        onMoveApp = { packageName, categoryName ->
+                            vm.moveApp(packageName, categoryName)
+                        },
                         onAppClick = { packageName -> launchApp(packageName) },
                         onSettingsClick = { showSettings = true },
                         onErrorDismissed = { vm.clearError() }

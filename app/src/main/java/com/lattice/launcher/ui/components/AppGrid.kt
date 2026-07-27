@@ -5,8 +5,9 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +35,7 @@ import com.lattice.launcher.data.HomeLayout
 fun AppGrid(
     layout: HomeLayout,
     onAppClick: (String) -> Unit,
+    onAppLongClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -59,7 +61,8 @@ fun AppGrid(
                 AppIcon(
                     packageName = packageName,
                     context = context,
-                    onClick = { onAppClick(packageName) }
+                    onClick = { onAppClick(packageName) },
+                    onLongClick = { onAppLongClick(packageName) }
                 )
             }
         }
@@ -76,8 +79,14 @@ private fun drawableToBitmap(drawable: Drawable): Bitmap {
     return bitmap
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AppIcon(packageName: String, context: Context, onClick: () -> Unit) {
+private fun AppIcon(
+    packageName: String,
+    context: Context,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     val pm = context.packageManager
     val icon: Drawable? = try {
         pm.getApplicationIcon(packageName)
@@ -93,7 +102,7 @@ private fun AppIcon(packageName: String, context: Context, onClick: () -> Unit) 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(4.dp)
     ) {
         if (icon != null) {

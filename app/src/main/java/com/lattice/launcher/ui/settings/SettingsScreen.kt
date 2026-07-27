@@ -69,19 +69,25 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // --- Mode toggle ---
+            Text(
+                text = "App organization works entirely offline. These settings are optional and only enable custom AI layout requests.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Use Proxy",
+                        text = "Use private proxy",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = if (useProxy) "Requests go through your Cloudflare Worker"
-                        else "Requests use your API key directly",
+                        text = if (useProxy) "Optional AI requests use your Cloudflare Worker"
+                        else "Optional AI requests use a key stored on this device",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -96,7 +102,6 @@ fun SettingsScreen(
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Direct key section ---
             AnimatedVisibility(visible = !useProxy) {
                 Column {
                     Text(
@@ -105,7 +110,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Enter your API key to enable AI-powered layout organization.",
+                        text = "Optional. Add a key only for natural-language layout requests.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -123,7 +128,6 @@ fun SettingsScreen(
                 }
             }
 
-            // --- Proxy section ---
             AnimatedVisibility(visible = useProxy) {
                 Column {
                     Text(
@@ -132,7 +136,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Your Cloudflare Worker URL. The worker holds the API key server-side.",
+                        text = "Optional. Your Cloudflare Worker can hold the AI key server-side.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -153,7 +157,7 @@ fun SettingsScreen(
                 onClick = { onSave(apiKey, proxyUrl, useProxy) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save")
+                Text("Save optional AI settings")
             }
         }
     }
