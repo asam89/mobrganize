@@ -1,13 +1,15 @@
 # Lattice Launcher
 
-An Android home-screen launcher built with Kotlin and Jetpack Compose that uses AI to organize your apps.
+An Android home-screen launcher built with Kotlin and Jetpack Compose that organizes apps locally, with optional AI-powered customization.
 
 ## Features
 
 - **Home Screen Replacement** — Registers as a HOME intent handler, replacing your default launcher.
 - **App Grid** — Lists all installed apps via `PackageManager`, grouped into categories.
-- **AI Organization** — Enter a natural-language command (e.g., "group my apps by type") and Lattice calls the Anthropic Messages API to reorganize your layout.
-- **Settings** — Enter your Anthropic API key at runtime; no key is baked into the app.
+- **Offline Organization** — Groups apps locally using Android category metadata and deterministic package/label rules; no account, network request, or API key is required.
+- **Editable Layout** — Long-press an app to move it between categories.
+- **Optional AI Organization** — When configured, natural-language requests can reorganize the local layout through the Anthropic Messages API.
+- **Settings** — Optionally enter an Anthropic API key or proxy URL at runtime; no key is baked into the app.
 - **Persistent Layout** — Saves your organized layout locally via DataStore.
 
 ## Requirements
@@ -39,9 +41,11 @@ The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ```
 app/src/main/java/com/lattice/launcher/
 ├── data/
+│   ├── AppCategory.kt       # Platform-independent app category model
 │   ├── AppInfo.kt           # Data class for installed apps
 │   ├── AppRepository.kt     # Queries PackageManager for launcher apps
 │   ├── HomeLayout.kt        # Serializable layout model (categories + hidden)
+│   ├── OfflineOrganizer.kt  # Local deterministic organization rules
 │   ├── LayoutPlanner.kt     # JSON extraction, parsing, sanitization from LLM
 │   └── SettingsStore.kt     # DataStore-backed preferences (API key, layout)
 ├── network/

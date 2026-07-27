@@ -7,6 +7,7 @@ import com.lattice.launcher.data.AppInfo
 import com.lattice.launcher.data.AppRepository
 import com.lattice.launcher.data.HomeLayout
 import com.lattice.launcher.data.LayoutPlanner
+import com.lattice.launcher.data.OfflineOrganizer
 import com.lattice.launcher.data.SettingsStore
 import com.lattice.launcher.network.AnthropicClient
 import com.lattice.launcher.network.ApiMode
@@ -53,36 +54,29 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             settingsStore.useProxy.collect { _useProxy.value = it }
         }
         loadApps()
-        loadSavedLayout()
     }
 
     fun loadApps() {
         viewModelScope.launch(Dispatchers.IO) {
             val installed = appRepository.getInstalledApps()
-            _apps.value = installed
+            val installedPackages = installed.map { it.packageName }.toSet()
+            val savedLayout = settingsStore.savedLayout.first()?.let { json ->
+                try {
+                    LayoutPlanner.sanitize(HomeLayout.deserialize(json), installedPackages)
+                } catch (_: Exception) {
+                    null
+                }
+            }
 
-            if (_layout.value.categories.isEmpty()) {
-                _layout.value = HomeLayout(
-                    categories = listOf(
-                        HomeLayout.Category(
-                            name = "All Apps",
-                            packageNames = installed.map { it.packageName }
-                        )
+            _apps.value = installed
+            _layout.value = savedLayout ?: HomeLayout(
+                categories = listOf(
+                    HomeLayout.Category(
+                        name = "All Apps",
+                        packageNames = installed.map { it.packageName }
                     )
                 )
-            }
-        }
-    }
-
-    private fun loadSavedLayout() {
-        viewModelScope.launch {
-            settingsStore.savedLayout.first()?.let { json ->
-                try {
-                    val saved = HomeLayout.deserialize(json)
-                    val installed = _apps.value.map { it.packageName }.toSet()
-                    _layout.value = LayoutPlanner.sanitize(saved, installed)
-                } catch (_: Exception) { /* use default */ }
-            }
+            )
         }
     }
 
@@ -94,6 +88,51 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _apiKey.value = apiKey
             _proxyUrl.value = proxyUrl
             _useProxy.value = useProxy
+        }
+    }
+
+    fun organizeOffline() {
+        val installed = _apps.value
+        if (installed.isEmpty()) return
+
+        _isOrganizing.value = true
+        _error.value = null
+
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val newLayout = OfflineOrganizer.organize(installed)
+                _layout.value = newLayout
+                settingsStore.saveLayout(newLayout.serialize())
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Could not organize apps."
+            } finally {
+                _isOrganizing.value = false
+            }
+        }
+    }
+
+    fun moveApp(packageName: String, targetCategoryName: String) {
+        val currentLayout = _layout.value
+        if (currentLayout.categories.none { it.name == targetCategoryName }) return
+
+        val labels = _apps.value.associate { it.packageName to it.label.lowercase() }
+        val updatedCategories = currentLayout.categories.map { category ->
+            val packagesWithoutApp = category.packageNames.filterNot { it == packageName }
+            if (category.name == targetCategoryName) {
+                category.copy(
+                    packageNames = (packagesWithoutApp + packageName)
+                        .distinct()
+                        .sortedBy { labels[it] ?: it }
+                )
+            } else {
+                category.copy(packageNames = packagesWithoutApp)
+            }
+        }.filter { it.packageNames.isNotEmpty() }
+
+        val updatedLayout = currentLayout.copy(categories = updatedCategories)
+        _layout.value = updatedLayout
+        viewModelScope.launch {
+            settingsStore.saveLayout(updatedLayout.serialize())
         }
     }
 
