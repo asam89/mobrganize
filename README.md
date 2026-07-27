@@ -18,6 +18,10 @@ An Android home-screen launcher built with Kotlin and Jetpack Compose that organ
 - Android SDK (compileSdk 35, minSdk 26)
 - Gradle 8.11.1
 
+## Download
+
+Installable Android APKs are published under [GitHub Releases](https://github.com/asam89/mobrganize/releases). The current packages are debug-signed testing builds; Android may ask you to allow installs from your browser or file manager.
+
 ## Build
 
 ```bash
